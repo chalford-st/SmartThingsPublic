@@ -137,18 +137,14 @@ def fireMoveEvents(commandPayload, withOnOff) {
     }
     log.debug "Start dimming $moveDirection at $rate units per second, with on/off: $withOnOff"
     state.velocity = moveDirection == "up" ? rate : rate * -1
-    setSwitchIfOnOff(withOnOff)
-    moveHandler()
-}
-
-def setSwitchIfOnOff(withOnOff) {
-	if(withOnOff) {
+    if(withOnOff) {
     	if(state.velocity > 0) {
         	state.switch = 1
         } else if(state.velocity < 0 && state.level == 0x00) {
 			state.switch = 0
         }
     }
+    moveHandler()
 }
 
 def moveHandler() {
@@ -185,7 +181,13 @@ def fireMoveToLevelEvents(commandPayload, withOnOff) {
     def transitionSeconds = transitionTime / 10
     log.debug "Dimming to $level in $transitionSeconds seconds, on/off: $withOnOff"
     state.level = level
-    setSwitchIfOnOff(withOnOff)
+    if(withOnOff) {
+    	if(state.level <= 0) {
+        	state.switch = 0
+        } else {
+			state.switch = 1
+        }
+    }
     sendEvents()
 }
 
