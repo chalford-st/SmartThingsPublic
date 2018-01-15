@@ -42,9 +42,9 @@ metadata {
         main "switch"
         details(["switch", "refresh"])
     }
-    
+
     simulator {
-    	status "move-up":  "catchall: 0104 0008 01 01 0140 00 C206 01 00 0000 05 00 0026"
+        status "move-up":  "catchall: 0104 0008 01 01 0140 00 C206 01 00 0000 05 00 0026"
         status "move-up":  "catchall: 0104 0008 01 01 0140 00 C206 01 01 0000 05 00 0026"
         status "stop-moving": "catchall: 0104 0008 01 01 0140 00 C206 01 00 0000 03 00"
     }
@@ -62,22 +62,22 @@ def parse(String description) {
         def command = descMap.commandInt
         def payload = descMap.payload
         if (cluster == 0x0006) {
-        	switch(command) {
-            	case 0x00:
-                	log.debug "Off command issued"
-                	off()
+            switch(command) {
+                case 0x00:
+                    log.debug "Off command issued"
+                    off()
                     break
-        		case 0x01:
-                	log.debug "On command issued"
+                case 0x01:
+                    log.debug "On command issued"
                     on()
                     break
                 default:
-                	log.warn "Unsupported command ($descMap.command) issued for cluster $descMap.clusterId"
+                    log.warn "Unsupported command ($descMap.command) issued for cluster $descMap.clusterId"
                     break
             }
         } else if (cluster == 0x0008) {
-        	switch(command) {
-        		case 0x01:
+            switch(command) {
+                case 0x01:
                     log.debug "Move command issued"
                     fireMoveEvents(descMap.data, false)
                     break
@@ -95,20 +95,20 @@ def parse(String description) {
                     fireMoveEvents(descMap.data, true)
                     break
                 default:
-                	log.debug "Unsupported command ($descMap.command) issued for cluster $descMap.clusterId"
+                    log.debug "Unsupported command ($descMap.command) issued for cluster $descMap.clusterId"
                     break
             }
         } else if (cluster == 0x0300) {
-        	switch(command) {
-            	case 0x0A:
-                	log.debug "UNSUPPORTED: Move to colour temperature command issued, payload is: $descMap.data"
+            switch(command) {
+                case 0x0A:
+                    log.debug "UNSUPPORTED: Move to colour temperature command issued, payload is: $descMap.data"
                     break
                 default:
-                	log.debug "Unsupported command ($descMap.command) issued for cluster $descMap.clusterId"
+                    log.debug "Unsupported command ($descMap.command) issued for cluster $descMap.clusterId"
                     break
             }
         } else if (cluster == 0x8021) {
-        	log.debug "UNSUPPORTED: Bind response issued, command is: $command, payload is: $payload"
+            log.debug "UNSUPPORTED: Bind response issued, command is: $command, payload is: $payload"
         } else {
             log.warn "DID NOT PARSE MESSAGE for description : $description"
             log.debug "${descMap}"
@@ -117,11 +117,11 @@ def parse(String description) {
 }
 
 def sendEvents() {
-	Integer level = (state.level ?: 0) * 100 / 0xFE
-	def sw = state.switch ? "on" : "off"
+    Integer level = (state.level ?: 0) * 100 / 0xFE
+    def sw = state.switch ? "on" : "off"
     log.debug "Sending events for switch: $sw, and level: $level"
-	sendEvent(name: "level", value: level)
-	sendEvent(name: "switch", value: sw)
+    sendEvent(name: "level", value: level)
+    sendEvent(name: "switch", value: sw)
 }
 
 def fireMoveEvents(commandPayload, withOnOff) {
@@ -138,10 +138,10 @@ def fireMoveEvents(commandPayload, withOnOff) {
     log.debug "Start dimming $moveDirection at $rate units per second, with on/off: $withOnOff"
     state.velocity = moveDirection == "up" ? rate : rate * -1
     if(withOnOff) {
-    	if(state.velocity > 0) {
-        	state.switch = 1
+        if(state.velocity > 0) {
+            state.switch = 1
         } else if(state.velocity < 0 && state.level == 0x00) {
-			state.switch = 0
+            state.switch = 0
         }
     }
     moveHandler()
@@ -157,9 +157,9 @@ def moveHandler() {
     } else {
         state.level = newLevel
     }
-	sendEvents()
-	if(state.velocity != 0) {
-    	runIn(1, moveHandler)
+    sendEvents()
+    if(state.velocity != 0) {
+        runIn(1, moveHandler)
     }
 }
 
@@ -175,43 +175,43 @@ def fireMoveToLevelEvents(commandPayload, withOnOff) {
     }
     def transitionTime = 0
     if(commandPayload[1]) {
-    	//read that zigbee is little endian, so need to reverse octet order
+        //read that zigbee is little endian, so need to reverse octet order
         transitionTime = zigbee.convertHexToInt(commandPayload[2] + commandPayload[1])
     }
     def transitionSeconds = transitionTime / 10
     log.debug "Dimming to $level in $transitionSeconds seconds, on/off: $withOnOff"
     state.level = level
     if(withOnOff) {
-    	if(state.level <= 0) {
-        	state.switch = 0
+        if(state.level <= 0) {
+            state.switch = 0
         } else {
-			state.switch = 1
+            state.switch = 1
         }
     }
     sendEvents()
 }
 
 def off() {
-	log.debug "Executing 'off'"
-	state.switch = 0
-	state.velocity = 0
-	sendEvents()
+    log.debug "Executing 'off'"
+    state.switch = 0
+    state.velocity = 0
+    sendEvents()
 }
 
 def on() {
-	log.debug "Executing 'on'"
-	state.switch = 1
-	state.velocity = 0
-	if(!state.level) {
-		state.level = 0xFE
-	}
-	sendEvents()
+    log.debug "Executing 'on'"
+    state.switch = 1
+    state.velocity = 0
+    if(!state.level) {
+        state.level = 0xFE
+    }
+    sendEvents()
 }
 
 def setLevel(value) {
-	log.debug "Executing 'setLevel'"
-	state.level = value * 0xFE / 100
-	sendEvents()
+    log.debug "Executing 'setLevel'"
+    state.level = value * 0xFE / 100
+    sendEvents()
 }
 /**
  * PING is used by Device-Watch in attempt to reach the Device
